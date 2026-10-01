@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>올인원 대시보드 v3</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: #0f0f11;
+            color: #ffffff;
+            font-family: 'Pretendard', sans-serif;
+            padding: 20px;
+            user-select: none;
+        }
+
+        /* 상단 커버 & 헤더 */
+        .cover-image {
+            width: 100%; height: 140px;
+            background: url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800') center/cover;
+            border-radius: 12px; margin-bottom: 15px;
+        }
+        .header-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px; margin-bottom: 20px;
+        }
+        .card {
+            background-color: #1a1a1e; border: 1px solid #2a2a30;
+            border-radius: 10px; padding: 15px; text-align: center;
+        }
+        .clock { font-size: 1.8rem; font-weight: bold; }
+
+        /* 메인 탭 컨테이너 */
+        .main-section {
+            background-color: #1a1a1e; border: 1px solid #2a2a30;
+            border-radius: 10px; padding: 20px; margin-bottom: 20px;
+        }
+        .tab-menu { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #2a2a30; padding-bottom: 10px; }
+        .tab-btn {
+            background: none; border: none; color: #888; font-size: 1.1rem;
+            font-weight: bold; padding: 8px 16px; cursor: pointer; border-radius: 6px;
+        }
+        .tab-btn.active { color: #fff; background-color: #2a2a35; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* 탭 1: 2단 분할 레이아웃 (좌: To-Do / 우: 루틴 카드) */
+        .tab1-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* 5:5 좌우 분할 */
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .tab1-grid { grid-template-columns: 1fr; } /* 화면 좁으면 세로 배치 */
+        }
+
+        .pane {
+            background-color: #141417; border: 1px solid #2a2a30;
+            border-radius: 8px; padding: 15px;
+        }
+        .pane-title { font-size: 1.1rem; margin-bottom: 15px; color: #ffd54f; display: flex; justify-content: space-between; align-items: center; }
+
+        /* To-Do 스타일 */
+        .input-group { display: flex; gap: 8px; margin-bottom: 15px; }
+        .input-group input {
+            flex: 1; padding: 8px 12px; border-radius: 6px; border: 1px solid #333;
+            background-color: #0f0f11; color: #fff;
+        }
+        .input-group button {
+            padding: 8px 14px; background-color: #ffd54f; color: #000;
+            font-weight: bold; border: none; border-radius: 6px; cursor: pointer;
+        }
+        .todo-list { list-style: none; }
+        .todo-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px; background-color: #1a1a1e; border-radius: 6px; margin-bottom: 8px;
+            border: 1px solid #2a2a30;
+        }
+        .todo-left { display: flex; align-items: center; gap: 10px; }
+        .todo-text.completed { text-decoration: line-through; opacity: 0.5; color: #888; }
+
+        /* 루틴 카드 스타일 */
+        .routine-container { display: flex; flex-direction: column; gap: 12px; }
+        .routine-card {
+            background-color: #1a1a1e; border: 1px solid #2a2a30;
+            border-radius: 6px; padding: 12px; position: relative;
+        }
+        .routine-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: bold; color: #4fe3a5; }
+        .routine-checklist { list-style: none; }
+        .routine-check-item { display: flex; align-items: center; gap: 8px; margin-top: 5px; font-size: 0.9rem; }
+
+        /* 탭 2: 네이버 스타일 달력 */
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .calendar-grid {
+            display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+            background-color: #2a2a30; border: 1px solid #2a2a30; border-radius: 8px; overflow: hidden;
+        }
+        .day-header { background-color: #141417; padding: 10px; text-align: center; font-weight: bold; color: #aaa; }
+        .day-cell {
+            background-color: #1a1a1e; min-height: 90px; padding: 6px;
+            position: relative; cursor: pointer; transition: background-color 0.2s;
+        }
+        .day-cell:hover { background-color: #22222a; }
+        .day-cell.selected-range { background-color: #2d3748 !important; }
+        .day-number { font-size: 0.85rem; color: #888; margin-bottom: 4px; }
+        .event-bar {
+            background-color: #4fe3a5; color: #000; font-size: 0.75rem;
+            padding: 2px 6px; border-radius: 3px; margin-top: 2px; font-weight: bold;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+        }
+
+        /* 하단 포스트잇 자유 배치 보드 */
+        .postit-board {
+            background-color: #141417; border: 2px dashed #2a2a30; border-radius: 10px;
+            min-height: 300px; position: relative; padding: 15px; overflow: hidden;
+        }
+        .postit {
+            width: 160px; min-height: 120px; background-color: #fff59d; color: #111;
+            font-family: 'Nanum Pen Script', cursive; font-size: 1.4rem; padding: 12px;
+            border-radius: 4px; box-shadow: 4px 4px 10px rgba(0,0,0,0.4);
+            position: absolute; cursor: move; touch-action: none;
+        }
+        .postit .delete-btn {
+            position: absolute; top: 4px; right: 8px; font-size: 0.9rem;
+            color: #e53935; cursor: pointer; font-family: sans-serif;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="cover-image"></div>
+
+    <!-- 대시보드 헤더 -->
+    <div class="header-grid">
+        <div class="card"><div class="clock" id="clock">00:00:00</div></div>
+        <div class="card">
+            <p style="color:#888; font-size:0.8rem;">실시간 날씨</p>
+            <p id="weather">날씨 불러오는 중...</p>
+        </div>
+    </div>
+
+    <!-- 메인 탭 세션 -->
+    <div class="main-section">
+        <div class="tab-menu">
+            <button class="tab-btn active" onclick="switchTab(0)">📝 To-Do & 루틴 플래너</button>
+            <button class="tab-btn" onclick="switchTab(1)">📅 네이버형 달력 플래너</button>
+        </div>
+
+        <!-- 탭 1: 좌(To-Do List) / 우(루틴 카드) 분할 레이아웃 -->
+        <div class="tab-content active" id="tab-0">
+            <div class="tab1-grid">
+                <!-- 왼쪽: To-Do List (체크 시 취소선) -->
+                <div class="pane">
+                    <div class="pane-title">📌 오늘의 할 일 (To-Do)</div>
+                    <div class="input-group">
+                        <input type="text" id="todoInput" placeholder="할 일 입력 후 Enter..." onkeyup="if(event.keyCode==13) addTodo()">
+                        <button onclick="addTodo()">추가</button>
+                    </div>
+                    <ul class="todo-list" id="todoList"></ul>
+                </div>
+
+                <!-- 오른쪽: 루틴 카드 체크리스트 -->
+                <div class="pane">
+                    <div class="pane-title">
+                        <span>⚡ 데일리 루틴 카드</span>
+                        <button onclick="addRoutineCard()" style="padding:4px 8px; font-size:0.8rem; background:#4fe3a5; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">+ 루틴 추가</button>
+                    </div>
+                    <div class="routine-container" id="routineContainer"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 탭 2: 네이버 스타일 달력 (일정 수정/삭제 지원) -->
+        <div class="tab-content" id="tab-1">
+            <div class="calendar-header">
+                <button onclick="changeMonth(-1)" style="padding:4px 12px; background:#2a2a35; color:#fff; border:none; border-radius:4px;">◀ 이전</button>
+                <h3 id="currentMonthStr">2026년 9월</h3>
+                <button onclick="changeMonth(1)" style="padding:4px 12px; background:#2a2a35; color:#fff; border:none; border-radius:4px;">다음 ▶</button>
+            </div>
+            <p style="color:#888; font-size:0.8rem; margin-bottom:8px;">💡 기간 선택: 날짜 2개 클릭 | 일정 클릭: 수정/삭제 가능</p>
+            <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+    </div>
+
+    <!-- 하단 자유 배치 포스트잇 보드 -->
+    <div class="postit-board" id="postitBoard">
+        <div style="color:#888; font-size:0.9rem; margin-bottom:10px;">📌 자유 배치 포스트잇 보드</div>
+        <button onclick="createPostit()" style="padding:6px 14px; background-color:#ffd54f; border:none; border-radius:4px; font-weight:bold; cursor:pointer; margin-bottom:10px;">+ 새 포스트잇</button>
+    </div>
+
+    <script>
+        // -------------------------------------------------------------
+        // 1. 공통: 시계 및 날씨 API
+        // -------------------------------------------------------------
+        function updateClock() {
+            document.getElementById('clock').innerText = new Date().toTimeString().split(' ')[0];
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        async function fetchWeather() {
+            try {
+                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.9780&current_weather=true');
+                const data = await res.json();
+                document.getElementById('weather').innerText = `☀️ 맑음 (${data.current_weather.temperature}°C)`;
+            } catch { document.getElementById('weather').innerText = "📡 오프라인 상태"; }
+        }
+        fetchWeather();
+
+        function switchTab(index) {
+            document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
+            document.querySelectorAll('.tab-content').forEach((content, i) => content.classList.toggle('active', i === index));
+        }
+
+        // -------------------------------------------------------------
+        // 2. 탭 1 (왼쪽): To-Do List (체크박스 + 취소선)
+        // -------------------------------------------------------------
+        let todos = JSON.parse(localStorage.getItem('myTodosV3')) || [];
+
+        function renderTodos() {
+            const list = document.getElementById('todoList');
+            list.innerHTML = '';
+            todos.forEach((todo, idx) => {
+                list.innerHTML += `
+                    <li class="todo-item">
+                        <div class="todo-left">
+                            <input type="checkbox" ${todo.done ? 'checked' : ''} onchange="toggleTodo(${idx})">
+                            <span class="todo-text ${todo.done ? 'completed' : ''}">${todo.text}</span>
+                        </div>
+                        <button onclick="deleteTodo(${idx})" style="background:none; border:none; color:#e53935; cursor:pointer; font-size:0.85rem;">삭제</button>
+                    </li>`;
+            });
+        }
+        function addTodo() {
+            const input = document.getElementById('todoInput');
+            if (!input.value.trim()) return;
+            todos.push({ text: input.value.trim(), done: false });
+            localStorage.setItem('myTodosV3', JSON.stringify(todos));
+            input.value = ''; renderTodos();
+        }
+        function toggleTodo(idx) { todos[idx].done = !todos[idx].done; localStorage.setItem('myTodosV3', JSON.stringify(todos)); renderTodos(); }
+        function deleteTodo(idx) { todos.splice(idx, 1); localStorage.setItem('myTodosV3', JSON.stringify(todos)); renderTodos(); }
+        renderTodos();
+
+        // -------------------------------------------------------------
+        // 3. 탭 1 (오른쪽): 루틴 카드 시스템
+        // -------------------------------------------------------------
+        let routines = JSON.parse(localStorage.getItem('myRoutinesV3')) || [
+            { title: "🏃 아침 루틴", items: [{ text: "스트레칭 5분", done: false }, { text: "영단어 10개 외우기", done: false }] }
+        ];
+
+        function renderRoutines() {
+            const container = document.getElementById('routineContainer');
+            container.innerHTML = '';
+            routines.forEach((card, rIdx) => {
+                let itemsHtml = card.items.map((item, iIdx) => `
+                    <li class="routine-check-item">
+                        <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleRoutineItem(${rIdx}, ${iIdx})">
+                        <span class="${item.done ? 'completed' : ''}">${item.text}</span>
+                    </li>
+                `).join('');
+
+                container.innerHTML += `
+                    <div class="routine-card">
+                        <div class="routine-header">
+                            <span>${card.title}</span>
+                            <button onclick="deleteRoutineCard(${rIdx})" style="background:none; border:none; color:#e53935; cursor:pointer;">✖</button>
+                        </div>
+                        <ul class="routine-checklist">${itemsHtml}</ul>
+                        <button onclick="addRoutineItem(${rIdx})" style="margin-top:8px; background:#2a2a35; color:#aaa; border:none; padding:4px 8px; border-radius:4px; font-size:0.75rem; cursor:pointer;">+ 항목 추가</button>
+                    </div>`;
+            });
+        }
+
+        function addRoutineCard() {
+            const title = prompt("새 루틴 카드 이름 (예: 💧 저녁 루틴):");
+            if (title) { routines.push({ title, items: [] }); saveRoutines(); }
+        }
+        function addRoutineItem(rIdx) {
+            const text = prompt("새 세부 루틴 항목:");
+            if (text) { routines[rIdx].items.push({ text, done: false }); saveRoutines(); }
+        }
+        function toggleRoutineItem(rIdx, iIdx) { routines[rIdx].items[iIdx].done = !routines[rIdx].items[iIdx].done; saveRoutines(); }
+        function deleteRoutineCard(rIdx) { routines.splice(rIdx, 1); saveRoutines(); }
+        function saveRoutines() { localStorage.setItem('myRoutinesV3', JSON.stringify(routines)); renderRoutines(); }
+        renderRoutines();
+
+        // -------------------------------------------------------------
+        // 4. 탭 2: 네이버 스타일 달력 (일정 수정 / 삭제 / 범위 등록)
+        // -------------------------------------------------------------
+        let viewDate = new Date();
+        let events = JSON.parse(localStorage.getItem('myCalEventsV3')) || [];
+        let rangeStart = null, rangeEnd = null;
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+            const year = viewDate.getFullYear(), month = viewDate.getMonth();
+            document.getElementById('currentMonthStr').innerText = `${year}년 ${month + 1}월`;
+
+            ['일','월','화','수','목','금','토'].forEach(d => grid.innerHTML += `<div class="day-header">${d}</div>`);
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const lastDate = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div class="day-cell" style="opacity:0.2;"></div>`;
+
+            for (let day = 1; day <= lastDate; day++) {
+                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                const cell = document.createElement('div');
+                cell.className = 'day-cell';
+                cell.dataset.date = dateStr;
+                cell.innerHTML = `<div class="day-number">${day}</div>`;
+
+                // 일정바 출력 (클릭 시 수정/삭제)
+                events.forEach((e, eventIdx) => {
+                    if (dateStr >= e.start && dateStr <= e.end) {
+                        const bar = document.createElement('div');
+                        bar.className = 'event-bar';
+                        bar.innerText = e.title;
+                        bar.onclick = (event) => {
+                            event.stopPropagation(); // 셀 선택 이벤트 방지
+                            editOrDeleteEvent(eventIdx);
+                        };
+                        cell.appendChild(bar);
+                    }
+                });
+
+                cell.onclick = () => selectDateRange(dateStr);
+                grid.appendChild(cell);
+            }
+        }
+
+        // 일정 수정 및 삭제 팝업
+        function editOrDeleteEvent(eventIdx) {
+            const current = events[eventIdx];
+            const action = prompt(`[일정 관리]\n기존 내용: ${current.title}\n(${current.start} ~ ${current.end})\n\n1: 내용 수정 | 2: 일정 삭제`);
+            
+            if (action === '1') {
+                const newTitle = prompt("수정할 일정 제목을 입력하세요:", current.title);
+                if (newTitle) { events[eventIdx].title = newTitle; saveEvents(); }
+            } else if (action === '2') {
+                if (confirm("정말 이 일정을 삭제하시겠습니까?")) { events.splice(eventIdx, 1); saveEvents(); }
+            }
+        }
+
+        function selectDateRange(dateStr) {
+            if (!rangeStart || (rangeStart && rangeEnd)) {
+                rangeStart = dateStr; rangeEnd = null; highlightRange();
+            } else {
+                if (dateStr < rangeStart) { rangeEnd = rangeStart; rangeStart = dateStr; }
+                else { rangeEnd = dateStr; }
+                highlightRange();
+                
+                setTimeout(() => {
+                    const title = prompt(`${rangeStart} ~ ${rangeEnd}\n새 일정 제목을 입력하세요:`);
+                    if (title) { events.push({ start: rangeStart, end: rangeEnd, title }); saveEvents(); }
+                    rangeStart = null; rangeEnd = null; renderCalendar();
+                }, 50);
+            }
+        }
+
+        function highlightRange() {
+            document.querySelectorAll('.day-cell').forEach(cell => {
+                const d = cell.dataset.date;
+                cell.classList.toggle('selected-range', d && ((d === rangeStart) || (d >= rangeStart && d <= rangeEnd)));
+            });
+        }
+
+        function changeMonth(diff) { viewDate.setMonth(viewDate.getMonth() + diff); renderCalendar(); }
+        function saveEvents() { localStorage.setItem('myCalEventsV3', JSON.stringify(events)); renderCalendar(); }
+        renderCalendar();
+
+        // -------------------------------------------------------------
+        // 5. 하단 포스트잇 자유 이동 (Touch/Mouse)
+        // -------------------------------------------------------------
+        let postits = JSON.parse(localStorage.getItem('myBoardPostitsV3')) || [];
+
+        function renderPostits() {
+            const board = document.getElementById('postitBoard');
+            document.querySelectorAll('.postit').forEach(el => el.remove());
+
+            postits.forEach((p, idx) => {
+                const el = document.createElement('div');
+                el.className = 'postit';
+                el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
+                el.innerHTML = `
+                    <span class="delete-btn" onclick="deletePostit(${idx})">✖</span>
+                    <div contenteditable="true" onblur="updatePostitText(${idx}, this.innerText)">${p.text}</div>
+                `;
+                makeDraggable(el, idx);
+                board.appendChild(el);
+            });
+        }
+
+        function createPostit() { postits.push({ x: 20, y: 50, text: '새 메모...' }); savePostits(); renderPostits(); }
+        function updatePostitText(idx, text) { postits[idx].text = text; savePostits(); }
+        function deletePostit(idx) { postits.splice(idx, 1); savePostits(); renderPostits(); }
+        function savePostits() { localStorage.setItem('myBoardPostitsV3', JSON.stringify(postits)); }
+
+        function makeDraggable(el, idx) {
+            let isDragging = false, startX, startY;
+            const onStart = (e) => {
+                isDragging = true;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                startX = clientX - el.offsetLeft; startY = clientY - el.offsetTop;
+            };
+            const onMove = (e) => {
+                if (!isDragging) return;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                let x = clientX - startX, y = clientY - startY;
+                el.style.left = x + 'px'; el.style.top = y + 'px';
+                postits[idx].x = x; postits[idx].y = y;
+            };
+            const onEnd = () => { if (isDragging) { isDragging = false; savePostits(); } };
+
+            el.addEventListener('mousedown', onStart);
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onEnd);
+            el.addEventListener('touchstart', onStart);
+            document.addEventListener('touchmove', onMove);
+            document.addEventListener('touchend', onEnd);
+        }
+        renderPostits();
+    </script>
+</body>
+</html>
