@@ -27,6 +27,8 @@
 		.calendar-panel { padding:20px; }
 		.calendar-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
 		.month-title { min-width:190px; text-align:center; font-size:21px; font-weight:850; }
+		.calendar-actions { display:flex; align-items:center; gap:8px; }
+		.wide-toggle { padding:9px 12px; border:1px solid var(--line); border-radius:6px; color:var(--navy); background:#fff; font-size:12px; font-weight:750; white-space:nowrap; }
 		.icon-button { width:38px; height:38px; border:1px solid var(--line); border-radius:7px; background:white; color:var(--navy); font-size:20px; }
 		.weekdays, .grid { display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); }
 		.weekday { padding:10px 8px; color:var(--muted); font-size:12px; font-weight:800; border-bottom:1px solid var(--line); }
@@ -38,6 +40,38 @@
 		.day.today { box-shadow:inset 0 0 0 2px #4b947c; }
 		.day.cooldown { background:#fff8e6; }
 		.day.performance-cycle { background:#e8e3fa; }
+		.calendar-leave-select { position:absolute; z-index:3; right:4px; bottom:5px; width:112px; padding:4px 5px; border-color:#cbd6dc; background:#fff; font-size:10px; opacity:0; visibility:hidden; }
+		.day:hover .calendar-leave-select, .day.actions-open .calendar-leave-select, .day:focus-within .calendar-leave-select { opacity:1; visibility:visible; }
+		.wide-scroll { display:none; overflow-x:auto; }
+		.wide-calendar { display:grid; grid-template-columns:repeat(4, minmax(250px, 1fr)); gap:14px; min-width:1040px; align-items:start; }
+		.mini-month { min-width:0; border:1px solid var(--line); border-radius:6px; overflow:visible; background:#fff; }
+		.mini-title { padding:9px 11px; background:#f2f7f5; font-size:14px; font-weight:800; }
+		.mini-weekdays, .mini-grid { display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); }
+		.mini-weekdays span { padding:5px 0; color:var(--muted); text-align:center; font-size:10px; font-weight:800; }
+		.mini-weekdays span:first-child { color:var(--red); }
+		.mini-weekdays span:last-child { color:#3d71a4; }
+		.mini-day { min-width:0; height:62px; padding:4px 3px; border-top:1px solid #edf0f2; border-right:1px solid #edf0f2; overflow:visible; position:relative; font-size:10px; }
+		.mini-day:hover, .mini-day:focus-within, .mini-day.actions-open { z-index:5; }
+		.mini-day .mini-tag { font-size:9px; line-height:12px; }
+		.mini-day .calendar-leave-select { right:1px; bottom:1px; width:112px; padding:4px; font-size:9px; }
+		.mini-day:hover .calendar-leave-select, .mini-day.actions-open .calendar-leave-select, .mini-day:focus-within .calendar-leave-select { opacity:1; visibility:visible; }
+		.mini-day:nth-child(7n) { border-right:0; }
+		.mini-day.outside { background:#fafbfb; }
+		.mini-day.performance-cycle { background:#e8e3fa; }
+		.mini-day.today { box-shadow:inset 0 0 0 2px #4b947c; }
+		.mini-number { display:block; font-weight:800; line-height:12px; }
+		.mini-tag { display:block; margin-top:1px; overflow:hidden; color:#315e89; line-height:10px; text-overflow:ellipsis; white-space:nowrap; }
+		.mini-tag.holiday { color:var(--red); }
+		.mini-tag.milestone { color:#805f16; }
+		.calendar-panel.wide-mode .calendar-head { justify-content:flex-end; }
+		.calendar-panel.wide-mode .month-title,
+		.calendar-panel.wide-mode .calendar-head > .icon-button,
+		.calendar-panel.wide-mode .calendar-actions > #nextMonth,
+		.calendar-panel.wide-mode > .weekdays,
+		.calendar-panel.wide-mode > #calendarGrid { display:none; }
+		.calendar-panel.wide-mode .wide-scroll { display:block; }
+		#calendarLayout.wide-mode { grid-template-columns:minmax(0, 1fr); }
+		#calendarLayout.wide-mode .overview { display:none; }
 		.training-tag { display:inline-block; margin-top:5px; font-size:10px; padding:3px 6px; border-radius:4px; background:#edf5f9; color:#34658b; }
 		.day:hover { background:#f0f7f4; }
 		.day-number { font-size:13px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; width:25px; height:25px; }
@@ -57,6 +91,8 @@
 		.stat span { color:var(--muted); font-size:11px; }
 		.stat.used { background:#f5eee3; }
 		.stat.used strong { color:#9a6a28; }
+		.stat.overdrawn { background:#fff0ef; }
+		.stat.overdrawn strong { color:#c6534d; }
 		.service-stats { display:grid; gap:10px; }
 		.service-stat { display:flex; justify-content:space-between; gap:12px; color:var(--muted); font-size:12px; }
 		.service-stat strong { color:var(--ink); font-size:13px; }
@@ -91,11 +127,12 @@
 		</header>
 		<nav class="tabs" aria-label="화면 선택"><button class="tab-button active" data-tab="calendarTab">1. 달력</button><button class="tab-button" data-tab="holidayTab">2. 공휴일</button><button class="tab-button" data-tab="leaveTab">3. 휴가 · 일정</button></nav>
 		<section class="tab-panel active" id="calendarTab">
-			<div class="layout">
-			<section class="panel calendar-panel">
-				<div class="calendar-head"><button class="icon-button" id="previousMonth" aria-label="이전 달">‹</button><div class="month-title" id="monthTitle"></div><button class="icon-button" id="nextMonth" aria-label="다음 달">›</button></div>
+			<div class="layout" id="calendarLayout">
+			<section class="panel calendar-panel" id="calendarPanel">
+				<div class="calendar-head"><button class="icon-button" id="previousMonth" aria-label="이전 달">‹</button><div class="month-title" id="monthTitle"></div><div class="calendar-actions"><button class="icon-button" id="nextMonth" aria-label="다음 달">›</button><button class="wide-toggle" id="wideCalendarButton" type="button" aria-pressed="false">달력 넓게 보기</button></div></div>
 				<div class="weekdays"><div class="weekday">일</div><div class="weekday">월</div><div class="weekday">화</div><div class="weekday">수</div><div class="weekday">목</div><div class="weekday">금</div><div class="weekday">토</div></div>
 				<div class="grid" id="calendarGrid"></div>
+				<div class="wide-scroll" id="wideCalendarScroll"><div class="wide-calendar" id="wideCalendar"></div></div>
 				<div class="legend"><span><i class="dot" style="background:#e0f2eb"></i>휴가</span><span><i class="dot" style="background:#dceaf8"></i>일정</span><span><i class="dot" style="background:#f6eac8"></i>진급일</span><span><i class="dot" style="background:#e8e3fa"></i>성과제외박 6주 주기</span></div>
 			</section>
 			<aside class="overview"><section class="panel card"><h2>휴가 현황</h2><div class="stats"><div class="stat"><strong id="leaveRemaining">0</strong><span>잔여 휴가 (일)</span></div><div class="stat"><strong id="leaveUsed">0</strong><span>사용 휴가 (일)</span></div><div class="stat used"><strong id="leaveTotal">0</strong><span>총 휴가 (일)</span></div></div></section><section class="panel card"><h2>복무 현황</h2><div class="service-stats"><div class="service-stat"><span>진급까지</span><strong id="promotionRemaining">-</strong></div><div class="service-stat"><span>월급까지</span><strong id="paydayRemaining">-</strong></div><div class="service-stat"><span>복무 일수</span><strong id="serviceDays">-</strong></div><div class="service-stat"><span>전역까지</span><strong id="dischargeRemaining">-</strong></div><div class="service-stat"><span>복무 진행도</span><strong id="serviceProgressText">-</strong></div><div class="progress-track"><div class="progress-bar" id="serviceProgressBar"></div></div></div></section><section class="panel card"><h2>관리 안내</h2><p class="empty">상단 탭에서 공휴일, 휴가, 일정 정보를 관리할 수 있습니다. 모든 내용은 이 브라우저에 자동 저장됩니다.</p></section></aside>
@@ -108,6 +145,7 @@
 		const storageKey = 'airforce-calendar-state';
 		const today = new Date();
 		let viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+		let wideCalendarView = false;
 		let state = JSON.parse(localStorage.getItem(storageKey) || 'null') || { enlistDate: '', balances: { 연가: 28, 포상휴가: 0, 위로휴가: 0, 청원휴가: 0, 성과제외박: 0 }, events: [], leaves: [], holidays: [], awardedLeaves: [] };
 		state.events ||= []; state.leaves ||= []; state.holidays ||= []; state.awardedLeaves ||= [];
 		state.balances ||= { 연가: 28, 포상휴가: 0, 위로휴가: 0, 청원휴가: 0, 성과제외박: 0 };
@@ -127,11 +165,12 @@
 		function daysUntil(start, end) { return Math.max(0, Math.floor((end - start) / 86400000)); }
 		const basicHolidayMap = {
 			'2025-01-01': '신정', '2025-02-09': '설날', '2025-02-10': '설날', '2025-02-11': '설날', '2025-03-01': '삼일절', '2025-05-05': '어린이날', '2025-06-06': '현충일', '2025-08-15': '광복절', '2025-10-03': '개천절', '2025-10-09': '한글날', '2025-12-25': '크리스마스',
-			'2026-01-01': '신정', '2026-02-16': '설날', '2026-02-17': '설날', '2026-02-18': '설날', '2026-03-01': '삼일절', '2026-05-05': '어린이날', '2026-06-06': '현충일', '2026-08-15': '광복절', '2026-10-03': '개천절', '2026-10-09': '한글날', '2026-12-25': '크리스마스',
-			'2027-01-01': '신정', '2027-02-05': '설날', '2027-02-06': '설날', '2027-02-07': '설날', '2027-03-01': '삼일절', '2027-05-05': '어린이날', '2027-06-06': '현충일', '2027-08-15': '광복절', '2027-10-03': '개천절', '2027-10-09': '한글날', '2027-12-25': '크리스마스'
+			'2026-01-01': '신정', '2026-02-16': '설날', '2026-02-17': '설날', '2026-02-18': '설날', '2026-03-01': '삼일절', '2026-03-02': '대체공휴일 (삼일절)', '2026-05-05': '어린이날', '2026-05-24': '부처님오신날', '2026-05-25': '대체공휴일 (부처님오신날)', '2026-06-03': '제9회 전국동시지방선거', '2026-06-06': '현충일', '2026-08-15': '광복절', '2026-08-17': '대체공휴일 (광복절)', '2026-09-24': '추석 연휴', '2026-09-25': '추석 연휴', '2026-09-26': '추석 연휴', '2026-10-03': '개천절', '2026-10-05': '대체공휴일 (개천절)', '2026-10-09': '한글날', '2026-12-25': '크리스마스(성탄절)',
+			'2027-01-01': '신정', '2027-02-06': '설날', '2027-02-07': '설날', '2027-02-08': '설날', '2027-02-09': '대체공휴일 (설날)', '2027-03-01': '삼일절', '2027-03-03': '제21대 대통령 선거', '2027-05-05': '어린이날', '2027-05-13': '부처님오신날', '2027-06-06': '현충일', '2027-08-15': '광복절', '2027-08-16': '대체공휴일 (광복절)', '2027-09-14': '추석 연휴', '2027-09-15': '추석 연휴', '2027-09-16': '추석 연휴', '2027-10-03': '개천절', '2027-10-04': '대체공휴일 (개천절)', '2027-10-09': '한글날', '2027-10-11': '대체공휴일 (한글날)', '2027-12-25': '크리스마스(성탄절)', '2027-12-27': '대체공휴일 (크리스마스)'
 		};
 		function ensureBaseHolidays() {
 			const years = [new Date().getFullYear(), new Date().getFullYear() + 1];
+			state.holidays = state.holidays.filter(item => !(item.date === '2027-02-05' && item.title === '설날'));
 			const existing = new Set(state.holidays.map(item => `${item.date}|${item.title}`));
 			for (const year of years) {
 				for (const [date, title] of Object.entries(basicHolidayMap)) {
@@ -164,7 +203,8 @@
 				cycleNumber += 1;
 				if (cycleNumber > 200) break;
 			}
-			return { remaining, used };
+			const loggedPerformanceDays = state.leaves.reduce((sum, leave) => sum + (leave.type === '성과제외박' && isWithinService(leave.start) && isWithinService(leave.end) ? daysBetween(leave.start, leave.end) : 0), 0);
+			return { remaining: remaining - loggedPerformanceDays, used };
 		}
 		function remainingPerformanceLeaveDays() { return performanceLeaveStats().remaining; }
 		function trainingCompletionDate() { if (!state.enlistDate) return null; const base = parseDate(state.enlistDate); const d = new Date(base.getTime()); d.setDate(d.getDate() + 35); while (d.getDay() !== 5) d.setDate(d.getDate() - 1); return d; }
@@ -195,21 +235,71 @@
 			document.getElementById('serviceProgressText').textContent = `${progress}%`;
 			document.getElementById('serviceProgressBar').style.width = `${progress}%`;
 		}
+		function renderWideCalendar() {
+			const container = document.getElementById('wideCalendar');
+			container.innerHTML = '';
+			const start = serviceStartDate(); const end = serviceEndDate();
+			if (!start || !end) {
+				const message = document.createElement('p'); message.className = 'empty'; message.textContent = '기본 설정에서 입대일과 전역일을 입력하면 복무기간 달력이 표시됩니다.'; container.appendChild(message);
+				return;
+			}
+			const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+			const todayKey = dateKey(today);
+			while (cursor <= end) {
+				const month = new Date(cursor); const year = month.getFullYear(); const monthIndex = month.getMonth();
+				const firstDay = new Date(year, monthIndex, 1).getDay(); const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+				const card = document.createElement('section'); card.className = 'mini-month';
+				const title = document.createElement('h3'); title.className = 'mini-title'; title.textContent = `${year}년 ${monthIndex + 1}월`; card.appendChild(title);
+				const weekdayRow = document.createElement('div'); weekdayRow.className = 'mini-weekdays';
+				for (const label of ['일', '월', '화', '수', '목', '금', '토']) { const weekday = document.createElement('span'); weekday.textContent = label; weekdayRow.appendChild(weekday); }
+				card.appendChild(weekdayRow);
+				const monthGrid = document.createElement('div'); monthGrid.className = 'mini-grid';
+				for (let cell = 0; cell < 42; cell++) {
+					const number = cell - firstDay + 1; const day = document.createElement('div'); day.className = 'mini-day';
+					if (number < 1 || number > lastDay) { day.classList.add('outside'); monthGrid.appendChild(day); continue; }
+					const date = new Date(year, monthIndex, number); const key = dateKey(date); day.dataset.date = key;
+					if (date < start || date > end) { day.classList.add('outside'); monthGrid.appendChild(day); continue; }
+					if (key === todayKey) day.classList.add('today');
+					const cycleStart = cycleStartFor(key); if (cycleStart) day.classList.add('performance-cycle');
+					const numberLabel = document.createElement('span'); numberLabel.className = 'mini-number'; numberLabel.textContent = String(number); day.appendChild(numberLabel);
+					const holiday = state.holidays.find(item => item.date === key);
+					const milestone = key === state.enlistDate ? '입대일' : key === dateKey(end) ? '전역일' : '';
+					const promotion = promotionDates().find(item => item.date === key);
+					const leave = state.leaves.find(item => key >= item.start && key <= item.end);
+					const event = state.events.find(item => item.date === key);
+					const labels = [];
+					if (holiday) labels.push([holiday.title, 'holiday']);
+					if (milestone) labels.push([milestone, 'milestone']);
+					if (promotion) labels.push([promotion.title, 'milestone']);
+					if (number === 10) labels.push(['월급날', 'milestone']);
+					if (leave) labels.push([leave.type, '']);
+					if (event) labels.push([event.title, '']);
+					if (cycleStart) labels.push([`${cycleOrderFor(key)}회차 성과제 외박`, 'milestone']);
+					for (const [text, kind] of labels.slice(0, 3)) { const tag = document.createElement('span'); tag.className = `mini-tag ${kind}`; tag.textContent = text; day.appendChild(tag); }
+					const selector = document.createElement('select'); selector.className = 'calendar-leave-select'; selector.setAttribute('aria-label', `${key} 휴가 사용`); selector.innerHTML = `<option value="">휴가 사용</option>${leave ? `<option value="__cancel_leave__">휴가 취소 (+${daysBetween(leave.start, leave.end)}일)</option>` : ''}<option value="연가">연가</option><option value="포상휴가">포상</option><option value="위로휴가">위로</option><option value="성과제외박">성과제외박</option><option value="청원휴가">청원</option>`; day.appendChild(selector);
+					monthGrid.appendChild(day);
+				}
+				card.appendChild(monthGrid); container.appendChild(card);
+				cursor.setMonth(cursor.getMonth() + 1);
+			}
+		}
 		function render() {
 			const year = viewDate.getFullYear(), month = viewDate.getMonth();
 			document.getElementById('monthTitle').textContent = `${year}년 ${month + 1}월`;
 			const firstDay = new Date(year, month, 1).getDay(); const lastDate = new Date(year, month + 1, 0).getDate(); const prevLast = new Date(year, month, 0).getDate();
 			const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
 			const trainingEnd = trainingCompletionDate();
-			for (let cell = 0; cell < 42; cell++) { const number = cell - firstDay + 1; const date = new Date(year, month, number); const key = dateKey(date); const current = number > 0 && number <= lastDate; const day = document.createElement('div'); day.className = `day${current ? '' : ' muted'}${key === dateKey(today) ? ' today' : ''}${isWithinService(key) && cycleStartFor(key) ? ' performance-cycle' : ''}`;
+			for (let cell = 0; cell < 42; cell++) { const number = cell - firstDay + 1; const date = new Date(year, month, number); const key = dateKey(date); const current = number > 0 && number <= lastDate; const day = document.createElement('div'); day.dataset.date = key; day.className = `day${current ? '' : ' muted'}${key === dateKey(today) ? ' today' : ''}${isWithinService(key) && cycleStartFor(key) ? ' performance-cycle' : ''}`;
 				const activeServiceDate = isWithinService(key); const holiday = state.holidays.find(item => item.date === key); const leave = activeServiceDate ? state.leaves.filter(item => key >= item.start && key <= item.end) : []; const events = activeServiceDate ? state.events.filter(item => item.date === key) : []; const promotion = activeServiceDate ? promotionDates().find(item => item.date === key) : null; const serviceMilestone = activeServiceDate && key === state.enlistDate ? '입대일' : activeServiceDate && key === dateKey(serviceEndDate()) ? '전역일' : ''; const cycleStart = activeServiceDate && cycleStartFor(key); const cycleOrder = cycleStartFor(key) ? cycleOrderFor(key) : 0;
 				const isPayrollDay = activeServiceDate && current && number === 10;
 				const trainingLabel = activeServiceDate && trainingEnd && key === dateKey(trainingEnd) ? '<span class="training-tag">훈련소 수료</span>' : (activeServiceDate && trainingEnd && parseDate(key) < trainingEnd ? '<span class="training-tag">훈련소</span>' : '');
-				const displayedNumber = current ? number : (number < 1 ? prevLast + number : number - lastDate); day.innerHTML = `<span class="day-number ${date.getDay() === 0 ? 'sunday' : date.getDay() === 6 ? 'saturday' : ''}">${displayedNumber}</span>${holiday ? `<span class="holiday-label">${holiday.title}</span>` : ''}${leave.map(item => `<span class="badge leave">${item.type}${item.start !== item.end ? ` · ${item.start === key ? '시작' : item.end === key ? '종료' : ''}` : ''}</span>`).join('')}${events.map(item => `<span class="badge event">${item.title}</span>`).join('')}${isPayrollDay ? '<span class="badge promotion">월급날</span>' : ''}${serviceMilestone ? `<span class="badge promotion">${serviceMilestone}</span>` : ''}${promotion ? `<span class="badge promotion">${promotion.title}</span>` : ''}${trainingLabel}${cycleStart ? `<span class="cooldown-tag">${cycleOrder}회차 성과제 외박</span>` : ''}`; grid.appendChild(day); }
+				const cancelDays = leave.reduce((sum, item) => sum + daysBetween(item.start, item.end), 0);
+				const leaveSelector = activeServiceDate ? `<select class="calendar-leave-select" aria-label="${key} 휴가 사용"><option value="">휴가 사용</option>${leave.length ? `<option value="__cancel_leave__">휴가 취소 (+${cancelDays}일)</option>` : ''}<option value="연가">연가</option><option value="포상휴가">포상</option><option value="위로휴가">위로</option><option value="성과제외박">성과제외박</option><option value="청원휴가">청원</option></select>` : '';
+				const displayedNumber = current ? number : (number < 1 ? prevLast + number : number - lastDate); day.innerHTML = `<span class="day-number ${date.getDay() === 0 ? 'sunday' : date.getDay() === 6 ? 'saturday' : ''}">${displayedNumber}</span>${holiday ? `<span class="holiday-label">${holiday.title}</span>` : ''}${leave.map(item => `<span class="badge leave">${item.type}${item.start !== item.end ? ` · ${item.start === key ? '시작' : item.end === key ? '종료' : ''}` : ''}</span>`).join('')}${events.map(item => `<span class="badge event">${item.title}</span>`).join('')}${isPayrollDay ? '<span class="badge promotion">월급날</span>' : ''}${serviceMilestone ? `<span class="badge promotion">${serviceMilestone}</span>` : ''}${promotion ? `<span class="badge promotion">${promotion.title}</span>` : ''}${trainingLabel}${cycleStart ? `<span class="cooldown-tag">${cycleOrder}회차 성과제 외박</span>` : ''}${leaveSelector}`; grid.appendChild(day); }
 			const performanceStats = performanceLeaveStats(); const autoPerformanceBalance = performanceStats.remaining; const usedLeaveDays = leaveDays() + performanceStats.used; const remainingLeaveDays = Math.max(0, Number(state.balances.연가 || 0) + Number(state.balances.포상휴가 || 0) + Number(state.balances.위로휴가 || 0) + Number(state.balances.청원휴가 || 0) + autoPerformanceBalance); const totalLeaveDays = remainingLeaveDays + usedLeaveDays;
 			document.getElementById('leaveUsed').textContent = usedLeaveDays; document.getElementById('leaveRemaining').textContent = remainingLeaveDays; document.getElementById('leaveTotal').textContent = totalLeaveDays;
-			document.getElementById('balanceAnnual').textContent = state.balances.연가; document.getElementById('balanceReward').textContent = state.balances.포상휴가; document.getElementById('balanceComfort').textContent = state.balances.위로휴가; document.getElementById('balancePetition').textContent = state.balances.청원휴가; document.getElementById('balancePerformance').textContent = autoPerformanceBalance; document.getElementById('balanceUsed').textContent = usedLeaveDays;
-			document.getElementById('enlistDate').value = state.enlistDate; document.getElementById('dischargeDate').value = state.dischargeDate || defaultDischargeDate(); document.getElementById('balanceAnnualInput').value = state.balances.연가; document.getElementById('balanceRewardInput').value = state.balances.포상휴가; document.getElementById('balanceComfortInput').value = state.balances.위로휴가; document.getElementById('balancePetitionInput').value = state.balances.청원휴가; renderServiceStats(); renderLists();
+			const balances = [['balanceAnnual', state.balances.연가], ['balanceReward', state.balances.포상휴가], ['balanceComfort', state.balances.위로휴가], ['balancePetition', state.balances.청원휴가], ['balancePerformance', autoPerformanceBalance]]; balances.forEach(([id, value]) => { const element = document.getElementById(id); element.textContent = value; element.closest('.stat').classList.toggle('overdrawn', Number(value) < 0); }); document.getElementById('balanceUsed').textContent = usedLeaveDays;
+			document.getElementById('enlistDate').value = state.enlistDate; document.getElementById('dischargeDate').value = state.dischargeDate || defaultDischargeDate(); document.getElementById('balanceAnnualInput').value = state.balances.연가; document.getElementById('balanceRewardInput').value = state.balances.포상휴가; document.getElementById('balanceComfortInput').value = state.balances.위로휴가; document.getElementById('balancePetitionInput').value = state.balances.청원휴가; renderServiceStats(); renderLists(); if (wideCalendarView) renderWideCalendar();
 		}
 		function renderLists() { const itemList = document.getElementById('itemList'); const entries = [...state.leaves.map((item,index) => ({ ...item, label:`${item.type} · ${formatDate(item.start)}${item.start !== item.end ? ` ~ ${formatDate(item.end)}` : ''}`, kind:'leaves', index })), ...state.events.map((item,index) => ({ ...item, label:`${formatDate(item.date)} · ${item.title}`, kind:'events', index }))]; itemList.innerHTML = entries.length ? entries.map(item => `<div class="list-item"><span>${item.label}<small>${item.kind === 'leaves' ? `${daysBetween(item.start,item.end)}일 차감${item.content ? ` · ${item.content}` : ''}` : '일정'}</small></span><span class="item-actions"><button class="edit" data-kind="${item.kind}" data-index="${item.index}">수정</button><button class="delete" data-kind="${item.kind}" data-index="${item.index}" aria-label="삭제">×</button></span></div>`).join('') : '<p class="empty">등록된 휴가가 없습니다.</p>'; const awardList = document.getElementById('awardList'); awardList.innerHTML = state.awardedLeaves.length ? state.awardedLeaves.map((item,index) => `<div class="list-item"><span>${item.type} · ${item.days}일<small>${item.content || '내용 없음'}</small></span><span class="item-actions"><button class="delete" data-award="${index}" aria-label="삭제">×</button></span></div>`).join('') : '<p class="empty">추가된 휴가가 없습니다.</p>'; const holidayList = document.getElementById('holidayList'); holidayList.innerHTML = state.holidays.length ? state.holidays.map((item,index) => `<div class="list-item"><span>${formatDate(item.date)} · ${item.title}</span><span class="item-actions"><button class="edit" data-holiday="${index}">수정</button><button class="delete" data-holiday="${index}" aria-label="삭제">×</button></span></div>`).join('') : '<p class="empty">등록된 공휴일이 없습니다.</p>'; }
 		function renderLists() {
@@ -221,15 +311,21 @@
 			scheduleList.innerHTML = state.events.length ? state.events.map((item, index) => `<div class="list-item"><span>${formatDate(item.date)} · ${item.title}<small>일정</small></span><span class="item-actions"><button class="edit" data-kind="events" data-index="${index}">수정</button><button class="delete" data-kind="events" data-index="${index}" aria-label="삭제">×</button></span></div>`).join('') : '<p class="empty">추가된 일정이 없습니다.</p>';
 			const holidayList = document.getElementById('holidayList'); holidayList.innerHTML = state.holidays.length ? state.holidays.map((item,index) => `<div class="list-item"><span>${formatDate(item.date)} · ${item.title}</span><span class="item-actions"><button class="edit" data-holiday="${index}">수정</button><button class="delete" data-holiday="${index}" aria-label="삭제">×</button></span></div>`).join('') : '<p class="empty">등록된 공휴일이 없습니다.</p>';
 		}
+		function addCalendarLeave(date, type) { if (!type || !isWithinService(date)) return; state.leaves.push({ start:date, end:date, type, content:'' }); updateBalance(type, 1, -1); save(); render(); }
+		function cancelCalendarLeave(date) { if (!isWithinService(date)) return; const canceled = state.leaves.filter(item => date >= item.start && date <= item.end); if (!canceled.length) return; canceled.forEach(item => updateBalance(item.type, daysBetween(item.start, item.end), 1)); state.leaves = state.leaves.filter(item => !canceled.includes(item)); save(); render(); }
+		document.addEventListener('change', event => { const selector = event.target.closest('.calendar-leave-select'); if (!selector) return; const cell = selector.closest('[data-date]'); if (!cell) return; if (selector.value === '__cancel_leave__') cancelCalendarLeave(cell.dataset.date); else addCalendarLeave(cell.dataset.date, selector.value); });
+		document.addEventListener('click', event => { if (event.target.closest('select')) return; const cell = event.target.closest('.day, .mini-day'); if (!cell) return; document.querySelectorAll('.day.actions-open, .mini-day.actions-open').forEach(item => item.classList.remove('actions-open')); cell.classList.add('actions-open'); });
+		document.addEventListener('dblclick', event => { if (event.target.closest('select')) return; const cell = event.target.closest('.day, .mini-day'); if (!cell || !isWithinService(cell.dataset.date)) return; const title = prompt('일정 이름을 입력하세요', ''); if (!title || !title.trim()) return; state.events.push({ date:cell.dataset.date, title:title.trim() }); save(); render(); });
 		document.getElementById('previousMonth').onclick = () => { viewDate.setMonth(viewDate.getMonth() - 1); render(); }; document.getElementById('nextMonth').onclick = () => { viewDate.setMonth(viewDate.getMonth() + 1); render(); }; document.getElementById('todayButton').onclick = () => { viewDate = new Date(today.getFullYear(), today.getMonth(), 1); render(); };
+		document.getElementById('wideCalendarButton').onclick = event => { wideCalendarView = !wideCalendarView; document.getElementById('calendarPanel').classList.toggle('wide-mode', wideCalendarView); document.getElementById('calendarLayout').classList.toggle('wide-mode', wideCalendarView); event.currentTarget.setAttribute('aria-pressed', String(wideCalendarView)); event.currentTarget.textContent = wideCalendarView ? '달력 기본 보기' : '달력 넓게 보기'; render(); };
 		document.getElementById('settingsForm').onsubmit = event => { event.preventDefault(); const enlistDate = document.getElementById('enlistDate').value; const dischargeDate = document.getElementById('dischargeDate').value || defaultDischargeDate(enlistDate); if (!enlistDate || dischargeDate < enlistDate) return alert('전역일은 입대일 이후여야 합니다.'); state.enlistDate = enlistDate; state.dischargeDate = dischargeDate; state.balances = { 연가:Number(document.getElementById('balanceAnnualInput').value), 포상휴가:Number(document.getElementById('balanceRewardInput').value), 위로휴가:Number(document.getElementById('balanceComfortInput').value), 청원휴가:Number(document.getElementById('balancePetitionInput').value), 성과제외박:Number(remainingPerformanceLeaveDays()) }; save(); render(); };
 		document.getElementById('eventForm').onsubmit = event => { event.preventDefault(); const date = document.getElementById('eventDate').value; if (!isWithinService(date)) return alert('입대일부터 전역일까지의 일정만 등록할 수 있습니다.'); state.events.push({ date, title:document.getElementById('eventTitle').value }); save(); event.target.reset(); render(); };
-		document.getElementById('leaveForm').onsubmit = event => { event.preventDefault(); const start = document.getElementById('leaveStart').value, end = document.getElementById('leaveEnd').value, type = document.getElementById('leaveType').value, content = document.getElementById('leaveContent').value.trim(); const days = daysBetween(start, end); if (end < start) return alert('종료일은 시작일보다 빠를 수 없습니다.'); if (!isWithinService(start) || !isWithinService(end)) return alert('입대일부터 전역일까지의 휴가만 등록할 수 있습니다.'); if (type === '외출') return alert('외출은 휴가 잔여 일수에서 제외됩니다.'); const category = balanceCategory(type); if (category && state.balances[category] < days) return alert(`${type} 잔여 일수가 부족합니다.`); state.leaves.push({ start, end, type, content }); updateBalance(type, days, -1); save(); event.target.reset(); render(); };
+		document.getElementById('leaveForm').onsubmit = event => { event.preventDefault(); const start = document.getElementById('leaveStart').value, end = document.getElementById('leaveEnd').value, type = document.getElementById('leaveType').value, content = document.getElementById('leaveContent').value.trim(); const days = daysBetween(start, end); if (end < start) return alert('종료일은 시작일보다 빠를 수 없습니다.'); if (!isWithinService(start) || !isWithinService(end)) return alert('입대일부터 전역일까지의 휴가만 등록할 수 있습니다.'); if (type === '외출') return alert('외출은 휴가 잔여 일수에서 제외됩니다.'); state.leaves.push({ start, end, type, content }); updateBalance(type, days, -1); save(); event.target.reset(); render(); };
 		document.getElementById('awardForm').onsubmit = event => { event.preventDefault(); const type = document.getElementById('awardType').value; const days = Number(document.getElementById('awardDays').value); const content = document.getElementById('awardContent').value.trim(); if (!Number.isFinite(days) || days <= 0) return alert('휴가는 1 이상이어야 합니다.'); if (type === '성과제외박') { state.balances.성과제외박 = Number(state.balances.성과제외박 || 0) + days; } else { const category = balanceCategory(type); if (category) state.balances[category] = Number(state.balances[category] || 0) + days; } state.awardedLeaves.push({ type, days, content, id: Date.now() + Math.random() }); save(); event.target.reset(); render(); };
 		document.getElementById('holidayForm').onsubmit = event => { event.preventDefault(); state.holidays.push({ date:document.getElementById('holidayDate').value, title:document.getElementById('holidayTitle').value }); save(); event.target.reset(); render(); };
 		document.querySelectorAll('.tab-button').forEach(button => button.onclick = () => { document.querySelectorAll('.tab-button, .tab-panel').forEach(element => element.classList.remove('active')); button.classList.add('active'); document.getElementById(button.dataset.tab).classList.add('active'); });
 		document.addEventListener('click', event => { const button = event.target.closest('.edit, .delete'); if (!button) return; const holidayIndex = button.dataset.holiday; const awardIndex = button.dataset.award; if (button.classList.contains('edit') && holidayIndex !== undefined) { const item = state.holidays[Number(holidayIndex)]; const date = prompt('공휴일 날짜 (YYYY-MM-DD)', item.date); const title = prompt('공휴일 이름', item.title); if (date && title) Object.assign(item, { date, title }); } else if (button.classList.contains('edit')) { const index = Number(button.dataset.index); const item = state[button.dataset.kind][index]; if (button.dataset.kind === 'events') { const date = prompt('일정 날짜 (YYYY-MM-DD)', item.date); const title = prompt('일정 이름', item.title); if (date && title) Object.assign(item, { date, title }); } else { const oldDays = daysBetween(item.start, item.end); updateBalance(item.type, oldDays, 1); const start = prompt('휴가 시작일 (YYYY-MM-DD)', item.start); const end = prompt('휴가 종료일 (YYYY-MM-DD)', item.end); const type = prompt('휴가 유형', item.type); const content = prompt('휴가 내용', item.content || ''); const newDays = start && end ? daysBetween(start, end) : oldDays; const category = balanceCategory(type); if (start && end && type && end >= start && (!category || state.balances[category] >= newDays)) { Object.assign(item, { start, end, type, content }); updateBalance(type, newDays, -1); } else updateBalance(item.type, oldDays, -1); } } else if (awardIndex !== undefined) { const item = state.awardedLeaves[Number(awardIndex)]; if (item) { if (item.type === '성과제외박') state.balances.성과제외박 = Math.max(0, Number(state.balances.성과제외박 || 0) - Number(item.days || 0)); else { const category = balanceCategory(item.type); if (category) state.balances[category] = Math.max(0, Number(state.balances[category] || 0) - Number(item.days || 0)); } state.awardedLeaves.splice(Number(awardIndex), 1); } } else if (holidayIndex !== undefined) { state.holidays.splice(Number(holidayIndex), 1); } else { const index = Number(button.dataset.index); const item = state[button.dataset.kind][index]; if (button.dataset.kind === 'leaves') updateBalance(item.type, daysBetween(item.start, item.end), 1); state[button.dataset.kind].splice(index, 1); } save(); render(); });
-		save(); render();
+		ensureBaseHolidays(); save(); render();
 	</script>
 </body>
 </html>
