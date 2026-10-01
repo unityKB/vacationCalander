@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>올인원 대시보드 v3</title>
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+    <link href="calendar-widget.css" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -90,26 +91,6 @@
         .routine-checklist { list-style: none; }
         .routine-check-item { display: flex; align-items: center; gap: 8px; margin-top: 5px; font-size: 0.9rem; }
 
-        /* 탭 2: 네이버 스타일 달력 */
-        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .calendar-grid {
-            display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
-            background-color: #2a2a30; border: 1px solid #2a2a30; border-radius: 8px; overflow: hidden;
-        }
-        .day-header { background-color: #141417; padding: 10px; text-align: center; font-weight: bold; color: #aaa; }
-        .day-cell {
-            background-color: #1a1a1e; min-height: 90px; padding: 6px;
-            position: relative; cursor: pointer; transition: background-color 0.2s;
-        }
-        .day-cell:hover { background-color: #22222a; }
-        .day-cell.selected-range { background-color: #2d3748 !important; }
-        .day-number { font-size: 0.85rem; color: #888; margin-bottom: 4px; }
-        .event-bar {
-            background-color: #4fe3a5; color: #000; font-size: 0.75rem;
-            padding: 2px 6px; border-radius: 3px; margin-top: 2px; font-weight: bold;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
-        }
-
         /* 하단 포스트잇 자유 배치 보드 */
         .postit-board {
             background-color: #141417; border: 2px dashed #2a2a30; border-radius: 10px;
@@ -171,15 +152,9 @@
             </div>
         </div>
 
-        <!-- 탭 2: 네이버 스타일 달력 (일정 수정/삭제 지원) -->
+        <!-- 탭 2: 공통 휴가·일정 위젯 -->
         <div class="tab-content" id="tab-1">
-            <div class="calendar-header">
-                <button onclick="changeMonth(-1)" style="padding:4px 12px; background:#2a2a35; color:#fff; border:none; border-radius:4px;">◀ 이전</button>
-                <h3 id="currentMonthStr">2026년 9월</h3>
-                <button onclick="changeMonth(1)" style="padding:4px 12px; background:#2a2a35; color:#fff; border:none; border-radius:4px;">다음 ▶</button>
-            </div>
-            <p style="color:#888; font-size:0.8rem; margin-bottom:8px;">💡 기간 선택: 날짜 2개 클릭 | 일정 클릭: 수정/삭제 가능</p>
-            <div class="calendar-grid" id="calendarGrid"></div>
+            <div id="calendarWidgetRoot"></div>
         </div>
     </div>
 
@@ -286,92 +261,6 @@
         renderRoutines();
 
         // -------------------------------------------------------------
-        // 4. 탭 2: 네이버 스타일 달력 (일정 수정 / 삭제 / 범위 등록)
-        // -------------------------------------------------------------
-        let viewDate = new Date();
-        let events = JSON.parse(localStorage.getItem('myCalEventsV3')) || [];
-        let rangeStart = null, rangeEnd = null;
-
-        function renderCalendar() {
-            const grid = document.getElementById('calendarGrid');
-            grid.innerHTML = '';
-            const year = viewDate.getFullYear(), month = viewDate.getMonth();
-            document.getElementById('currentMonthStr').innerText = `${year}년 ${month + 1}월`;
-
-            ['일','월','화','수','목','금','토'].forEach(d => grid.innerHTML += `<div class="day-header">${d}</div>`);
-
-            const firstDay = new Date(year, month, 1).getDay();
-            const lastDate = new Date(year, month + 1, 0).getDate();
-
-            for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div class="day-cell" style="opacity:0.2;"></div>`;
-
-            for (let day = 1; day <= lastDate; day++) {
-                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-                const cell = document.createElement('div');
-                cell.className = 'day-cell';
-                cell.dataset.date = dateStr;
-                cell.innerHTML = `<div class="day-number">${day}</div>`;
-
-                // 일정바 출력 (클릭 시 수정/삭제)
-                events.forEach((e, eventIdx) => {
-                    if (dateStr >= e.start && dateStr <= e.end) {
-                        const bar = document.createElement('div');
-                        bar.className = 'event-bar';
-                        bar.innerText = e.title;
-                        bar.onclick = (event) => {
-                            event.stopPropagation(); // 셀 선택 이벤트 방지
-                            editOrDeleteEvent(eventIdx);
-                        };
-                        cell.appendChild(bar);
-                    }
-                });
-
-                cell.onclick = () => selectDateRange(dateStr);
-                grid.appendChild(cell);
-            }
-        }
-
-        // 일정 수정 및 삭제 팝업
-        function editOrDeleteEvent(eventIdx) {
-            const current = events[eventIdx];
-            const action = prompt(`[일정 관리]\n기존 내용: ${current.title}\n(${current.start} ~ ${current.end})\n\n1: 내용 수정 | 2: 일정 삭제`);
-            
-            if (action === '1') {
-                const newTitle = prompt("수정할 일정 제목을 입력하세요:", current.title);
-                if (newTitle) { events[eventIdx].title = newTitle; saveEvents(); }
-            } else if (action === '2') {
-                if (confirm("정말 이 일정을 삭제하시겠습니까?")) { events.splice(eventIdx, 1); saveEvents(); }
-            }
-        }
-
-        function selectDateRange(dateStr) {
-            if (!rangeStart || (rangeStart && rangeEnd)) {
-                rangeStart = dateStr; rangeEnd = null; highlightRange();
-            } else {
-                if (dateStr < rangeStart) { rangeEnd = rangeStart; rangeStart = dateStr; }
-                else { rangeEnd = dateStr; }
-                highlightRange();
-                
-                setTimeout(() => {
-                    const title = prompt(`${rangeStart} ~ ${rangeEnd}\n새 일정 제목을 입력하세요:`);
-                    if (title) { events.push({ start: rangeStart, end: rangeEnd, title }); saveEvents(); }
-                    rangeStart = null; rangeEnd = null; renderCalendar();
-                }, 50);
-            }
-        }
-
-        function highlightRange() {
-            document.querySelectorAll('.day-cell').forEach(cell => {
-                const d = cell.dataset.date;
-                cell.classList.toggle('selected-range', d && ((d === rangeStart) || (d >= rangeStart && d <= rangeEnd)));
-            });
-        }
-
-        function changeMonth(diff) { viewDate.setMonth(viewDate.getMonth() + diff); renderCalendar(); }
-        function saveEvents() { localStorage.setItem('myCalEventsV3', JSON.stringify(events)); renderCalendar(); }
-        renderCalendar();
-
-        // -------------------------------------------------------------
         // 5. 하단 포스트잇 자유 이동 (Touch/Mouse)
         // -------------------------------------------------------------
         let postits = JSON.parse(localStorage.getItem('myBoardPostitsV3')) || [];
@@ -424,6 +313,10 @@
             document.addEventListener('touchend', onEnd);
         }
         renderPostits();
+    </script>
+    <script type="module">
+        import { mountCalendarWidget } from './calendar-widget.js';
+        mountCalendarWidget(document.getElementById('calendarWidgetRoot'));
     </script>
 </body>
 </html>
