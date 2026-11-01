@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="theme-color" content="#090c0d">
+	<title>STACK QUEST | 도전과제 보드</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="skillTree.css">
+</head>
+<body>
+	<div class="app-shell">
+		<header class="topbar">
+			<a class="brand" href="#top" aria-label="Stack Quest 홈">
+				<span class="brand-mark">S<span>Q</span></span>
+				<span class="brand-name">STACK<span>QUEST</span></span>
+			</a>
+			<div class="topbar-right">
+				<span class="sync-status"><i></i> LOCAL SAVE</span>
+				<div class="avatar" aria-label="플레이어">J</div>
+			</div>
+		</header>
+
+		<main id="top">
+			<section class="hero">
+				<div class="hero-copy">
+					<p class="eyebrow"><span class="eyebrow-line"></span> YOUR DEVELOPER JOURNEY</p>
+					<h1>기술을 쌓고,<br><em>레벨을 올리세요.</em></h1>
+					<p class="hero-description">도전과제를 보드 위에 배치하고, 선행 과제를 연결해 나만의 성장 경로를 만드세요.</p>
+				</div>
+				<div class="hero-level">
+					<div class="level-top"><span>PLAYER LEVEL</span><strong id="playerLevel">LV. 01</strong></div>
+					<div class="level-track"><span id="levelProgress"></span></div>
+					<div class="level-bottom"><span id="levelCaption">첫 번째 미션을 시작해 보세요</span><span id="levelCount">0 XP</span></div>
+				</div>
+			</section>
+
+			<section class="stats-row" aria-label="도전과제 통계">
+				<div class="stat-cell"><span class="stat-label">완료 도전과제</span><strong id="completedStat">00 <small>/ 00</small></strong></div>
+				<div class="stat-cell"><span class="stat-label">완료 미션</span><strong id="missionStat">00 <small>/ 00</small></strong></div>
+				<div class="stat-cell"><span class="stat-label">진행 가능</span><strong class="stat-current" id="currentStat">00 QUESTS</strong></div>
+				<div class="stat-cell stat-streak"><span class="stat-label">QUEST STATUS</span><strong><i></i> <span id="questStatus">READY TO BUILD</span></strong></div>
+			</section>
+
+			<section class="board-section" aria-label="도전과제 보드">
+				<div class="board-heading">
+					<div><p class="section-kicker">01 / QUEST BOARD</p><h2>도전과제 보드</h2></div>
+					<div class="board-actions">
+						<label class="filter-label" for="stackFilter">STACK</label>
+						<select id="stackFilter" aria-label="기술 스택 필터"><option value="all">전체 스택</option></select>
+						<button class="database-button" id="openDatabaseButton" type="button"><span aria-hidden="true">☷</span> 데이터베이스</button>
+						<button class="primary-button add-challenge-button" id="addChallengeButton" type="button"><span aria-hidden="true">+</span> 도전과제 추가</button>
+					</div>
+				</div>
+				<div class="board-legend"><span><i class="legend-dot done"></i> 완료</span><span><i class="legend-dot active"></i> 도전 중</span><span><i class="legend-dot locked"></i> 잠김</span><span class="legend-arrow">──› 선행 관계</span><span class="board-count" id="boardCount">00 CHALLENGES</span></div>
+				<div class="board-viewport" id="boardViewport">
+					<div class="quest-board" id="questBoard">
+						<svg class="board-links" id="boardLinks" aria-hidden="true"><defs><marker id="linkArrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z"></path></marker></defs></svg>
+						<div class="board-nodes" id="boardNodes"></div>
+						<div class="board-empty" id="boardEmpty"><span class="empty-rune">✳</span><strong>아직 등록된 도전과제가 없습니다.</strong><span>첫 도전과제를 추가해 나만의 트리를 시작하세요.</span><button type="button" id="emptyAddButton">+ 첫 도전과제 만들기</button></div>
+					</div>
+				</div>
+				<p class="board-footnote"><span>↖</span> 카드 상단을 드래그해 원하는 위치로 옮길 수 있습니다. 선행 도전과제를 완료하면 연결된 카드가 해금됩니다.</p>
+			</section>
+		</main>
+		<footer class="page-footer"><span>STACK QUEST <i>•</i> BUILD YOUR NEXT SKILL</span><span>PROGRESS IS SAVED ON THIS DEVICE</span></footer>
+	</div>
+	<dialog class="database-dialog" id="databaseDialog" aria-labelledby="databaseTitle">
+		<div class="dialog-shell">
+			<header class="dialog-header">
+				<div><p class="section-kicker">02 / QUEST DATABASE</p><h2 id="databaseTitle">도전과제 데이터베이스</h2></div>
+				<button class="dialog-close" id="closeDatabaseButton" type="button" aria-label="데이터베이스 닫기">×</button>
+			</header>
+			<div class="dialog-layout">
+				<aside class="database-list-panel">
+					<div class="list-panel-heading"><span>도전과제 트리</span><button class="icon-button" type="button" id="newChallengeButton" aria-label="새 도전과제 추가" title="새 도전과제 추가">+</button></div>
+					<div class="database-root-drop" id="databaseRootDrop"><span aria-hidden="true">↥</span><span><strong>최상위 도전과제</strong><small>여기로 끌면 독립 시작 노드가 됩니다.</small></span></div>
+					<div class="database-list" id="databaseList"></div>
+					<p class="list-footnote">항목을 다른 도전과제 위에 놓으면 그 아래로 이동합니다.</p>
+					<p class="hierarchy-message" id="hierarchyMessage" role="status" aria-live="polite"></p>
+				</aside>
+				<form class="challenge-form" id="challengeForm">
+					<div class="form-title-row"><div><p class="section-kicker">CHALLENGE SETTINGS</p><h3 id="formHeading">새 도전과제 등록</h3></div><span class="edit-indicator" id="editIndicator">NEW QUEST</span></div>
+					<input type="hidden" id="challengeId">
+					<div class="form-grid">
+						<label class="field"><span>도전과제 이름</span><input id="challengeName" maxlength="36" placeholder="예: REST API 만들기" required></label>
+						<label class="field"><span>기술 스택</span><input id="challengeCategory" maxlength="24" placeholder="예: BACKEND / FRONTEND" required></label>
+					</div>
+					<div class="form-grid form-grid-short">
+						<label class="field"><span>아이콘</span><input id="challengeIcon" maxlength="4" value="✦" placeholder="⚡"></label>
+						<label class="field"><span>카드 컬러</span><select id="challengeColor"><option value="cyan">NEON CYAN</option><option value="lime">ACID LIME</option><option value="coral">LASER CORAL</option><option value="amber">ELECTRIC AMBER</option></select></label>
+					</div>
+					<label class="field"><span>도전 설명</span><input id="challengeDescription" maxlength="90" placeholder="이 도전과제에서 만들거나 익힐 내용을 적어주세요."></label>
+					<label class="field"><span>선행 도전과제 <small>없으면 시작 노드로 생성</small></span><select id="challengeParent"><option value="">없음 · 처음부터 도전 가능</option></select></label>
+					<label class="field"><span>완료 미션 <small>한 줄에 미션 하나씩</small></span><textarea id="challengeMissions" rows="5" placeholder="요구사항 정리하기&#10;작동하는 결과물 만들기" required></textarea></label>
+					<label class="field"><span>메모</span><textarea id="challengeNote" class="note-field" rows="2" placeholder="참고 링크나 작업 메모를 남겨보세요."></textarea></label>
+					<div class="form-actions"><button class="delete-skill-button" type="button" id="deleteChallengeButton" hidden>삭제</button><span class="form-spacer"></span><button class="secondary-button" type="button" id="resetChallengeButton">초기화</button><button class="primary-button" type="submit"><span id="saveButtonLabel">보드에 추가</span><span aria-hidden="true">↗</span></button></div>
+					<p class="form-message" id="formMessage" role="status"></p>
+				</form>
+			</div>
+		</div>
+	</dialog>
+	<script src="challengeBoard.js"></script>
+</body>
+</html>
